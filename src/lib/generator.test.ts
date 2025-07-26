@@ -2,7 +2,7 @@ import { generateSingleIdea, IdeaMashupGenerator } from './generator'
 
 // Mock Supabase
 jest.mock('./supabase', () => {
-  const mockData = {
+  const mockData: Record<string, { content: string }[]> = {
     persona: [
       { content: 'Tech Entrepreneurs' },
       { content: 'Small Business Owners' },
@@ -49,7 +49,7 @@ jest.mock('./supabase', () => {
     supabase: {
       from: jest.fn(() => ({
         select: jest.fn(() => ({
-          eq: jest.fn((field, value) => ({
+          eq: jest.fn((field: string, value: string) => ({
             eq: jest.fn(() => Promise.resolve({
               data: mockData[value] || [],
               error: null
