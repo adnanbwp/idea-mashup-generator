@@ -56,16 +56,18 @@ test.describe('Idea Mashup Generator', () => {
   test('should show navigation between pages', async ({ page }) => {
     await page.goto('/')
     
-    // Check navigation buttons are present - use role to target specific buttons
-    await expect(page.getByRole('button', { name: 'Generate' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Saved Ideas' })).toBeVisible()
+    // Check navigation buttons are present - use link role since they're wrapped in Link components
+    await expect(page.getByRole('link', { name: 'Generate' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Saved Ideas' })).toBeVisible()
     
-    // Navigate to saved ideas
-    await page.getByRole('button', { name: 'Saved Ideas' }).click()
+    // Navigate to saved ideas and wait for navigation
+    await page.getByRole('link', { name: 'Saved Ideas' }).click()
+    await page.waitForURL('**/saved')
     await expect(page.url()).toContain('/saved')
     
-    // Navigate back to generate
-    await page.getByRole('button', { name: 'Generate' }).click()
+    // Navigate back to generate and wait for navigation
+    await page.getByRole('link', { name: 'Generate' }).click()
+    await page.waitForURL('/')
     await expect(page.url()).toBe('http://localhost:3000/')
   })
 })
