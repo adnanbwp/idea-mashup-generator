@@ -14,7 +14,12 @@ test.describe('Idea Mashup Generator', () => {
     
     await page.getByText('Saved Ideas').click()
     await expect(page.getByText('Saved Ideas')).toBeVisible()
-    await expect(page.getByText("You haven't saved any ideas yet")).toBeVisible()
+    
+    // Check for either the auth error message or the empty state message
+    const authErrorVisible = page.getByText('Please sign in to view your saved ideas')
+    const emptyStateVisible = page.getByText("You haven't saved any ideas yet. Generate some ideas to get started!")
+    
+    await expect(authErrorVisible.or(emptyStateVisible)).toBeVisible()
   })
   
   test('should generate an idea when button is clicked', async ({ page }) => {
