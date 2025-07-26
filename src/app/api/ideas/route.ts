@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
 import { GetIdeasResponse, SaveIdeaRequest, SaveIdeaResponse, ApiError } from '@/types'
+import { createClient } from '@supabase/supabase-js'
 
 // Get user's saved ideas
 export async function GET(request: NextRequest) {
@@ -9,10 +9,9 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = parseInt(searchParams.get('offset') || '0')
     
-    // In a real app, you'd get the user ID from the auth token
-    // For now, we'll use a placeholder approach
+    // Get access token from Authorization header
     const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       const errorResponse: ApiError = {
         error: {
           code: 'AUTH_REQUIRED',
@@ -23,14 +22,37 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(errorResponse, { status: 401 })
     }
     
-    // TODO: Extract user ID from JWT token
-    // For now, using a mock user ID for development
-    const userId = 'mock-user-id'
+    const token = authHeader.replace('Bearer ', '')
+    
+    // Create Supabase client with the user's token
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: { Authorization: authHeader }
+        }
+      }
+    )
+    
+    // Get user from token
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token)
+    
+    if (userError || !user) {
+      const errorResponse: ApiError = {
+        error: {
+          code: 'INVALID_TOKEN',
+          message: 'Invalid authentication token'
+        },
+        timestamp: new Date().toISOString()
+      }
+      return NextResponse.json(errorResponse, { status: 401 })
+    }
     
     const { data: ideas, error, count } = await supabase
       .from('ideas')
       .select('*', { count: 'exact' })
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
     
@@ -77,9 +99,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(errorResponse, { status: 400 })
     }
     
-    // TODO: Extract user ID from JWT token
+    // Get access token from Authorization header
     const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       const errorResponse: ApiError = {
         error: {
           code: 'AUTH_REQUIRED',
@@ -90,12 +112,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(errorResponse, { status: 401 })
     }
     
-    const userId = 'mock-user-id'
+    const token = authHeader.replace('Bearer ', '')
+    
+    // Create Supabase client with the user's token
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: { Authorization: authHeader }
+        }
+      }
+    )
+    
+    // Get user from token
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token)
+    
+    if (userError || !user) {
+      const errorResponse: ApiError = {
+        error: {
+          code: 'INVALID_TOKEN',
+          message: 'Invalid authentication token'
+        },
+        timestamp: new Date().toISOString()
+      }
+      return NextResponse.json(errorResponse, { status: 401 })
+    }
     
     const { data, error } = await supabase
       .from('ideas')
       .insert({
-        user_id: userId,
+        user_id: user.id,
         content: body.content
       })
       .select('id')

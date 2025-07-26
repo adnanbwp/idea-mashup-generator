@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { IdeaCard } from '@/components/idea-card'
 import { GeneratorProps, IdeaContent } from '@/types'
+import { supabase } from '@/lib/supabase'
 
 export function IdeaGenerator({ onIdeaGenerated }: GeneratorProps) {
   const [currentIdea, setCurrentIdea] = useState<IdeaContent | null>(null)
@@ -47,11 +48,18 @@ export function IdeaGenerator({ onIdeaGenerated }: GeneratorProps) {
     setError(null)
     
     try {
+      // Get the current session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      
+      if (sessionError || !session?.access_token) {
+        throw new Error('Please sign in to save ideas')
+      }
+      
       const response = await fetch('/api/ideas', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer mock-token' // TODO: Replace with real auth token
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           content: currentIdea
@@ -59,7 +67,8 @@ export function IdeaGenerator({ onIdeaGenerated }: GeneratorProps) {
       })
       
       if (!response.ok) {
-        throw new Error('Failed to save idea')
+        const errorData = await response.json()
+        throw new Error(errorData.error?.message || 'Failed to save idea')
       }
       
       // Show success feedback
@@ -67,7 +76,7 @@ export function IdeaGenerator({ onIdeaGenerated }: GeneratorProps) {
       
     } catch (error) {
       console.error('Error saving idea:', error)
-      setError('Failed to save idea. Please try again.')
+      setError(error instanceof Error ? error.message : 'Failed to save idea. Please try again.')
     } finally {
       setIsSaving(false)
     }

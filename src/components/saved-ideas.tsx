@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { IdeaCard } from '@/components/idea-card'
 import { Idea, GetIdeasResponse } from '@/types'
+import { supabase } from '@/lib/supabase'
 
 export function SavedIdeas() {
   const [ideas, setIdeas] = useState<Idea[]>([])
@@ -21,12 +22,21 @@ export function SavedIdeas() {
     setError(null)
     
     try {
+      // Get the current session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      
+      if (sessionError || !session?.access_token) {
+        setError('Please sign in to view your saved ideas')
+        setIsLoading(false)
+        return
+      }
+      
       const offset = page * PAGE_SIZE
       const response = await fetch(
         `/api/ideas?limit=${PAGE_SIZE}&offset=${offset}`,
         {
           headers: {
-            'Authorization': 'Bearer mock-token' // TODO: Replace with real auth token
+            'Authorization': `Bearer ${session.access_token}`
           }
         }
       )
@@ -35,7 +45,8 @@ export function SavedIdeas() {
         if (response.status === 401) {
           throw new Error('Please sign in to view your saved ideas')
         }
-        throw new Error('Failed to load ideas')
+        const errorData = await response.json()
+        throw new Error(errorData.error?.message || 'Failed to load ideas')
       }
       
       const data: GetIdeasResponse = await response.json()
@@ -54,15 +65,24 @@ export function SavedIdeas() {
   
   const deleteIdea = async (ideaId: string) => {
     try {
+      // Get the current session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      
+      if (sessionError || !session?.access_token) {
+        alert('Please sign in to delete ideas')
+        return
+      }
+      
       const response = await fetch(`/api/ideas/${ideaId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': 'Bearer mock-token' // TODO: Replace with real auth token
+          'Authorization': `Bearer ${session.access_token}`
         }
       })
       
       if (!response.ok) {
-        throw new Error('Failed to delete idea')
+        const errorData = await response.json()
+        throw new Error(errorData.error?.message || 'Failed to delete idea')
       }
       
       // Remove the idea from the local state
@@ -71,7 +91,7 @@ export function SavedIdeas() {
       
     } catch (error) {
       console.error('Error deleting idea:', error)
-      alert('Failed to delete idea. Please try again.')
+      alert(error instanceof Error ? error.message : 'Failed to delete idea. Please try again.')
     }
   }
   
