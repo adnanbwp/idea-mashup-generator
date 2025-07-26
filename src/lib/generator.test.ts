@@ -1,26 +1,65 @@
 import { generateSingleIdea, IdeaMashupGenerator } from './generator'
 
 // Mock Supabase
-jest.mock('./supabase', () => ({
-  supabase: {
-    from: jest.fn(() => ({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            limit: jest.fn(() => ({
-              order: jest.fn(() => ({
-                order: jest.fn(() => Promise.resolve({
-                  data: [{ content: 'Mock Content' }],
-                  error: null
-                }))
-              }))
+jest.mock('./supabase', () => {
+  const mockData = {
+    persona: [
+      { content: 'Tech Entrepreneurs' },
+      { content: 'Small Business Owners' },
+      { content: 'Remote Workers' }
+    ],
+    problem: [
+      { content: 'managing their time effectively' },
+      { content: 'finding reliable team members' },
+      { content: 'staying organized with multiple projects' }
+    ],
+    technology: [
+      { content: 'AI-powered analytics' },
+      { content: 'blockchain technology' },
+      { content: 'mobile-first design' }
+    ],
+    business_model: [
+      { content: 'subscription' },
+      { content: 'freemium' },
+      { content: 'marketplace' }
+    ],
+    format: [
+      { content: 'mobile app' },
+      { content: 'web platform' },
+      { content: 'API service' }
+    ],
+    channel: [
+      { content: 'social media' },
+      { content: 'direct sales' },
+      { content: 'partner network' }
+    ],
+    action_verb: [
+      { content: 'streamline' },
+      { content: 'automate' },
+      { content: 'optimize' }
+    ],
+    trend: [
+      { content: 'sustainability' },
+      { content: 'remote work' },
+      { content: 'AI integration' }
+    ]
+  }
+
+  return {
+    supabase: {
+      from: jest.fn(() => ({
+        select: jest.fn(() => ({
+          eq: jest.fn((field, value) => ({
+            eq: jest.fn(() => Promise.resolve({
+              data: mockData[value] || [],
+              error: null
             }))
           }))
         }))
       }))
-    }))
+    }
   }
-}))
+})
 
 describe('IdeaMashupGenerator', () => {
   beforeEach(() => {
