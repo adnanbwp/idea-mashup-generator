@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
 import { ApiError } from '@/types'
+import { createClient } from '@supabase/supabase-js'
 
 // Delete an idea
 export async function DELETE(
@@ -21,9 +21,9 @@ export async function DELETE(
       return NextResponse.json(errorResponse, { status: 400 })
     }
     
-    // TODO: Extract user ID from JWT token
+    // Get access token from Authorization header
     const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       const errorResponse: ApiError = {
         error: {
           code: 'AUTH_REQUIRED',
@@ -34,14 +34,39 @@ export async function DELETE(
       return NextResponse.json(errorResponse, { status: 401 })
     }
     
-    const userId = 'mock-user-id'
+    const token = authHeader.replace('Bearer ', '')
+    
+    // Create Supabase client with the user's token
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: { Authorization: authHeader }
+        }
+      }
+    )
+    
+    // Get user from token
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token)
+    
+    if (userError || !user) {
+      const errorResponse: ApiError = {
+        error: {
+          code: 'INVALID_TOKEN',
+          message: 'Invalid authentication token'
+        },
+        timestamp: new Date().toISOString()
+      }
+      return NextResponse.json(errorResponse, { status: 401 })
+    }
     
     // Delete the idea (RLS will ensure users can only delete their own ideas)
     const { error } = await supabase
       .from('ideas')
       .delete()
       .eq('id', id)
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
     
     if (error) {
       throw error
