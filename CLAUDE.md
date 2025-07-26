@@ -56,3 +56,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Clean separation of concerns
 - Row-level security for multi-user data
 - Sub-1s response times for idea generation
+
+## Development Best Practices
+
+- Always create a branch and make changes in it. Once change has been confirmed in development environment, only then merge to main.
