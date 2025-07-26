@@ -49,6 +49,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(errorResponse, { status: 401 })
     }
     
+    // Ensure user exists in our users table (auto-create if needed)
+    const { error: upsertError } = await supabase
+      .from('users')
+      .upsert({
+        id: user.id,
+        email: user.email || '',
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'id'
+      })
+    
+    if (upsertError) {
+      console.error('Error creating/updating user:', upsertError)
+      // Continue anyway - the user might already exist
+    }
+    
     const { data: ideas, error, count } = await supabase
       .from('ideas')
       .select('*', { count: 'exact' })
@@ -137,6 +153,22 @@ export async function POST(request: NextRequest) {
         timestamp: new Date().toISOString()
       }
       return NextResponse.json(errorResponse, { status: 401 })
+    }
+    
+    // Ensure user exists in our users table (auto-create if needed)
+    const { error: upsertError } = await supabase
+      .from('users')
+      .upsert({
+        id: user.id,
+        email: user.email || '',
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'id'
+      })
+    
+    if (upsertError) {
+      console.error('Error creating/updating user:', upsertError)
+      // Continue anyway - the user might already exist
     }
     
     const { data, error } = await supabase
